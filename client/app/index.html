@@ -1,0 +1,79 @@
+<!doctype html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title></title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+    <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
+    <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css">
+    <!-- build:css({.tmp,app}) styles/main.css -->
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- endbuild -->
+</head>
+<body data-ng-app>
+    <div id="aside">
+        <div class="profile-image">
+            <img class="img-circle" src="http://tp1.sinaimg.cn/2972287924/180/40002983278/1" alt="profile image" />
+        </div>
+        <div class="icons">新建话题</div>
+        <div class="icons">我发起的</div>
+        <div class="icons">我参与的</div>
+        <div class="icons">热门</div>
+        <div class="icons">设置</div>
+    </div>
+    <div id="content-wrapper">
+        <div class="topic-container" data-ng-controller="TopicListCtrl">
+            <ul class="list-unstyled topics">
+                <li class="clearfix" data-ng-repeat="topic in topics">
+                    <div class="pull-left">
+                        <img class="img-rounded" data-ng-src="{{ topic.profileImg }}" alt="" />
+                    </div>
+                    <div class="topic-content">
+                        <div>
+                            <strong>{{ topic.title }}</strong>
+                            <span><a class="at" href="#">@{{ topic.founder }}</a></span>
+                        </div>
+                        <p class="no-margin">{{ topic.description }}</p>
+                        <b class="expand-action">
+                            <span><a href="#">展开</a></span>
+                            <span class="hidden"><a href="#">收起</a></span>
+                        </b>
+                        <ul class="actions hidden list-unstyled list-inline pull-right">
+                            <li><a href="#">回复</a></li>
+                            <li><a href="#">邀请</a></li>
+                            <li><a href="#">喜欢</a></li>
+                            <li><a href="#">更多</a></li>
+                        </ul>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="topic-detail">
+        </div>
+    </div>
+
+    <script src="bower_components/jquery/jquery.js"></script>
+    <script src="bower_components/bootstrap/dist/js/bootstrap.js"></script>
+    <script src="bower_components/angular/angular.js"></script>
+
+    <!-- build:js({.tmp,app}) scripts/scripts.js -->
+    <script src="scripts/app.js"></script>
+    <script src="scripts/controllers/main.js"></script>
+    <!-- endbuild -->
+
+    <!-- build:js scripts/modules.js -->
+    <script src="bower_components/angular-resource/angular-resource.js"></script>
+    <script src="bower_components/angular-cookies/angular-cookies.js"></script>
+    <script src="bower_components/angular-sanitize/angular-sanitize.js"></script>
+    <!-- endbuild -->
+    <script type="text/javascript">
+        $(document).ready(function(){
+                $('ul.topics>li').hover(function(){
+                    $(this).toggleClass('selected');
+                    $(this).find('ul.actions').toggleClass('hidden');
+                    });
+                });
+</script>
+</body>
+</html>
