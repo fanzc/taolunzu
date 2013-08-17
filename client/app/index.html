@@ -22,10 +22,10 @@
         <div class="icons">热门</div>
         <div class="icons">设置</div>
     </div>
-    <div id="content-wrapper">
-        <div class="topic-container" data-ng-controller="TopicListCtrl">
+    <div id="content-wrapper" data-ng-controller="TopicListCtrl">
+        <div class="topic-container">
             <ul class="list-unstyled topics">
-                <li class="clearfix" data-ng-repeat="topic in topics">
+                <li class="clearfix" data-ng-repeat="topic in topics" data-ng-click="setDetail(topic.id)">
                     <div class="pull-left">
                         <img class="img-rounded" data-ng-src="{{ topic.profileImg }}" alt="" />
                     </div>
@@ -50,6 +50,18 @@
             </ul>
         </div>
         <div class="topic-detail">
+            <h1>{{ topicDetail.id }}</h1>
+            <div class="media">
+                <a class="pull-left" href="#">
+                    <img class="media-object img-circle" data-ng-src="{{ topicDetail.profileImg }}" alt="profile image" />
+                </a>
+                <div class="media-body">
+                    <h4 class="media-heading">
+                        {{ topicDetail.title }}
+                    </h4>
+                    {{ topicDetail.description }}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -70,8 +82,12 @@
     <script type="text/javascript">
         $(document).ready(function(){
                 $('ul.topics>li').hover(function(){
-                    $(this).toggleClass('selected');
                     $(this).find('ul.actions').toggleClass('hidden');
+                    });
+
+                $('ul.topics>li').click(function(){
+                    $('ul.topics>li').removeClass('selected');
+                    $(this).toggleClass('selected');
                     });
                 });
 </script>

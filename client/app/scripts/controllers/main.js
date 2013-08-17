@@ -183,6 +183,38 @@ function TopicListCtrl($scope) {
             replyCount: 'Fast just got faster with Nexus S.'
         },
     ];
+
+    $scope.topicDetail = {
+            id: 1000,
+            title: "The Next, Next Generation(Honeycomb).",
+            created_at: 1376712096,
+            founder: 'Emrys',
+            profileImg: 'http://tp1.sinaimg.cn/2972287924/180/40002983278/1',
+            description: "The Next, Next Generation\r\n\r\nExperience the future with Motorola XOOM with Wi-Fi, the world's first tablet powered by Android 3.0 (Honeycomb).",
+            particpantCount: 10,
+            replyCount: 'Fast just got faster with Nexus S.'
+    };
+
+    $scope.setDetail = function(topicId) {
+        $scope.topicDetail = {
+            id: topicId,
+            title: "The Next, Next Generation(Honeycomb).",
+            created_at: 1376712096,
+            founder: 'Emrys',
+            profileImg: 'http://tp1.sinaimg.cn/2972287924/180/40002983278/1',
+            description: "The Next, Next Generation\r\n\r\nExperience the future with Motorola XOOM with Wi-Fi, the world's first tablet powered by Android 3.0 (Honeycomb).",
+            particpantCount: 10,
+            replyCount: 'Fast just got faster with Nexus S.',
+            hardware: {
+                accelerometer: true, 
+                audioJack: "3.5mm", 
+                cpu: "1GHz Cortex A8 (Hummingbird) processor", 
+                fmRadio: false, 
+                physicalKeyboard: false, 
+                usb: "USB 2.0"
+            } 
+        };
+    };
 };
 
 function TopicDetailCtrl($scope, $routeParams) {

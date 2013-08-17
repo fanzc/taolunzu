@@ -89,6 +89,11 @@
     padding:10px;
 }
 
+.topics>li:hover {
+    background-color: #edf2f8;
+}
+
+
 .topics>li img {
     width: 46px;
     height: 46px;
@@ -122,4 +127,9 @@
 .selected {
     background-color: #edf2f8;
     border-right: 3px solid red;
+}
+
+img.media-object {
+    width: 48px;
+    height: 48px;
 }
