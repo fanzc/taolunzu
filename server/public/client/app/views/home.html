@@ -1,0 +1,54 @@
+<div id="aside">
+    <div class="profile-image">
+        <img class="img-circle" src="http://tp1.sinaimg.cn/2972287924/180/40002983278/1" alt="profile image" />
+    </div>
+    <div class="icons">新建话题</div>
+    <div class="icons">我发起的</div>
+    <div class="icons">我参与的</div>
+    <div class="icons">热门</div>
+    <div class="icons">设置</div>
+    <div class="icons">退出</div>
+</div>
+<div id="content-wrapper">
+    <div class="topic-container">
+        <ul class="list-unstyled topics">
+            <li class="clearfix" data-ng-repeat="topic in topics" data-ng-click="setDetail(topic.id)">
+            <div class="pull-left">
+                <img class="img-rounded" data-ng-src="{{ topic.profileImg }}" alt="" />
+            </div>
+            <div class="topic-content">
+                <div>
+                    <strong>{{ topic.title }}</strong>
+                    <span><a class="at" href="#">@{{ topic.founder }}</a></span>
+                </div>
+                <p class="no-margin">{{ topic.description }}</p>
+                <b class="expand-action">
+                    <span><a href="#">展开</a></span>
+                    <span class="hidden"><a href="#">收起</a></span>
+                </b>
+                <ul class="actions hidden list-unstyled list-inline pull-right">
+                    <li><a href="#">回复</a></li>
+                    <li><a href="#">邀请</a></li>
+                    <li><a href="#">喜欢</a></li>
+                    <li><a href="#">更多</a></li>
+                </ul>
+            </div>
+            </li>
+        </ul>
+    </div>
+    <div class="topic-detail">
+        <h1>{{ topicDetail.id }}</h1>
+        <h1>{{ loggedIn }}</h1>
+        <div class="media">
+            <a class="pull-left" href="#">
+                <img class="media-object img-circle" data-ng-src="{{ topicDetail.profileImg }}" alt="profile image" />
+            </a>
+            <div class="media-body">
+                <h4 class="media-heading">
+                    {{ topicDetail.title }}
+                </h4>
+                {{ topicDetail.description }}
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,23 +1,15 @@
+var passport = require('passport');
 
-/*
- * GET users listing.
- */
-
-exports.list = function(req, res){
-  res.send("respond with a resource");
-};
-
-exports.login = function(req, res, next){
-    req.onValidationError(function(msg) {
-        res.json(401, {
-            success: 0, msg: msg
-        });
-    });
-
-    req.checkBody('email', 'Email or password error.').len(6, 64).isEmail();
-    req.checkBody('password', 'Email or password error.').len(8, 20);
-
+// POST /login
+//   Use passport.authenticate() as route middleware to authenticate the
+//   request.  If authentication fails, the user will be redirected back to the
+//   login page.  Otherwise, the primary route function function will be called,
+//   which, in this example, will redirect the user to the home page.
+//
+//   curl -v -d "username=bob&password=secret" http://127.0.0.1:3000/login
+exports.login = function(req, res) {
     res.json({
+        id: 1,
         email: req.param('email')
     });
 };
