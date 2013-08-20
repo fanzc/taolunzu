@@ -8,6 +8,7 @@ var expressValidator = require('express-validator');
 var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var user = require('./routes/user');
+var topic = require('./routes/topic');
 var http = require('http');
 var path = require('path');
 
@@ -91,6 +92,7 @@ if ('development' == app.get('env')) {
 
 app.post('/login', passport.authenticate('local'), user.login);
 app.get('/logout', user.logout);
+app.get('/topics', topic.getTopicList);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
