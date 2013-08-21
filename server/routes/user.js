@@ -15,6 +15,7 @@ exports.login = function(req, res) {
 };
 
 exports.logout = function(req, res, next){
+    req.logout();
     res.json({
         msg: "Logged out!"
     });

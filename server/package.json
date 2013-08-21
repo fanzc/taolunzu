@@ -9,6 +9,7 @@
     "express": "3.3.5",
     "express-validator": "~0.7.0",
     "passport": "~0.1.17",
-    "passport-local": "~0.1.6"
+    "passport-local": "~0.1.6",
+    "redis": "~0.8.4"
   }
 }

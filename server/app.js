@@ -63,6 +63,13 @@ passport.use(new LocalStrategy({
     }
 ));
 
+function ensureAuthenticated(req, res, next) {
+    if (req.isAuthenticated()) {
+        return next();
+    }
+    res.json(401, {msg: "Login required"});
+}
+
 // all environments
 app.set('port', process.env.PORT || 9000);
 app.set('views', __dirname + '/views');
@@ -92,7 +99,8 @@ if ('development' == app.get('env')) {
 
 app.post('/login', passport.authenticate('local'), user.login);
 app.get('/logout', user.logout);
-app.get('/topics', topic.getTopicList);
+app.get('/topics', ensureAuthenticated, topic.getTopicList);
+app.get('/topic/:tid', ensureAuthenticated, topic.getTopicDetail);
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));

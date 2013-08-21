@@ -19,7 +19,7 @@ angular.module('app', ['http-auth-interceptor'])
                 $location.url('/home');
             });
         }
-    }
+    };
 })
 .service('Authentication', function(){
     this.isloggedIn = false;
@@ -67,6 +67,15 @@ function HomeController ($scope, $http, Authentication) {
             $scope.topicDetail = data;
         });
     }
+
+    $scope.logout = function() {
+        $http.post('/logout').success(function(){
+            $scope.flashMessage = "Logout successfully"
+            $location.url('/');
+        }).error(function(){
+            $scope.flashMessage = "Logout failed"
+        });
+    };
 }
 
 HomeController.$inject = ['$scope', '$http', 'Authentication'];
