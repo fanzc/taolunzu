@@ -32,10 +32,10 @@ passport.serializeUser(function(user, done) {
 });
 
 passport.deserializeUser(function(id, done) {
-    user = {
+    var user = {
         id: 1,
         email: 'fanzc.daily@gmail.com'
-    }
+    };
     done(null, user);
 });
 
@@ -53,10 +53,10 @@ passport.use(new LocalStrategy({
         // asynchronous verification, for effect...
         console.log('username: ' + username);
         process.nextTick(function () {
-            user = {
+            var user = {
                 id: 1,
                 email: username
-            }
+            };
             console.log('password: ' + password);
             return done(null, user);
         });
@@ -98,7 +98,7 @@ if ('development' == app.get('env')) {
 }
 
 app.post('/login', passport.authenticate('local'), user.login);
-app.get('/logout', user.logout);
+app.post('/logout', user.logout);
 app.get('/topics', ensureAuthenticated, topic.getTopicList);
 app.get('/topic/:tid', ensureAuthenticated, topic.getTopicDetail);
 
