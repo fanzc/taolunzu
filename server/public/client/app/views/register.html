@@ -1,7 +1,7 @@
 <div class="container">
     <div class="row">
         <div class="col-6">
-            <form data-ng-submit="login()" name="form" role="form" novalidate>
+            <form data-ng-submit="register()" name="form" role="form" novalidate>
                 <legend>Sign in</legend>
                 <div class="form-group">
                     <label>Username</label>
@@ -23,11 +23,28 @@
                         Password must be at least 6 characters.
                     </p>
                 </div>
+                <div class="form-group">
+                    <label>Repeat password</label>
+                    <input 
+                    class="form-control"
+                    type="password"
+                    ng-model="user.confirm"
+                    name='confirm'
+                    required
+                    data-ng-minlength='6'
+                    />
+                    <p
+                        class="help-block"
+                        ng-show="form.confirm.$error.minlength || form.confirm.$invalid">
+                        Repeat password doesn't match password.
+                    </p>
+                </div>
                 <button data-ng-disabled='form.$invalid' class="btn btn-primary">
-                    Login
+                    Register
                 </button>
             </form>
         </div>
     </div>
 
 </div>
+

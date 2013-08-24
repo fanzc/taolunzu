@@ -5,9 +5,8 @@ var db = require('../db');
 // hash table "topics:%tid"
 // {
 //  id: 1,
-//  title: "whataya want from me",
-//  description: "Hey, slow it down whataya want from me, whataya want from me, there are might be a time",
-//  created_by: emrys,
+//  content: "Hey, slow it down whataya want from me, whataya want from me, there are might be a time",
+//  create_by: emrys,
 //  created_at: 1377138907,
 //  reply_count: 0,
 //  latest_update_stamp: 1377138907
@@ -15,7 +14,7 @@ var db = require('../db');
 //
 //  schema: "/topics", method: get
 exports.getTopics = function(req, res) {
-    db.zrange('user:' + req.user.name + ':topics', 0, -1, function(err, topicIds){
+    db.zrange('user:' + req.user.username + ':topics', 0, -1, function(err, topicIds){
         if (err) {
             return res.json(404, {msg: err});
         }
@@ -52,22 +51,19 @@ exports.getTopic = function(req, res){
 };
 
 // schema: '/topics', method: post
-// title="what"&description="about"
 //
 // hash table "topics:%tid"
 // {
 //  id: 1,
-//  title: "whataya want from me",
-//  description: "Hey, slow it down whataya want from me, whataya want from me, there are might be a time",
-//  created_by: emrys,
+//  content: "Hey, slow it down whataya want from me, whataya want from me, there are might be a time",
+//  create_by: emrys,
 //  created_at: 1377138907,
 //  avatar: http://api.upyun.com/v1/emrys.jpg
 //  reply_count: 0,
 //  latest_update_stamp: 1377138907
 // }
 exports.postTopic = function(req, res){
-    req.checkBody('title', 'Invalid title').notEmpty().len(140);
-    req.checkBody('description', 'Invalid description').notEmpty().len(1000);
+    req.checkBody('content', 'Invalid content').notEmpty().len(0, 1000);
 
     var errors = req.validationErrors();
     if (errors) {
@@ -80,21 +76,20 @@ exports.postTopic = function(req, res){
             return res.json(400, {msg: err});
         }
 
-        db.zadd('user:' + req.user.name + ':topics', now, tid);
+        db.zadd('user:' + req.user.username + ':topics', now, tid);
         var topic = {
             id: tid,
-            title: req.sanitize('title'),
-            description: req.sanitize('description'),
+            content: req.param('content'),
             created_at: now,
-            create_by: req.user.name,
+            create_by: req.user.username,
             avatar: req.user.avatar
         };
 
-        db.hmset('topic:' + tid, topic, function(err, res){
+        db.hmset('topic:' + tid, topic, function(err, ret){
             if (err) {
                 return res.json(400, {msg: err});
             }
-            return res.json({msg: res});
+            return res.json({msg: ret});
         });
     });
 };
@@ -107,14 +102,15 @@ exports.postTopic = function(req, res){
 //  id: 1,
 //  content: "It's amazing",
 //  created_at: 13771389100,
-//  created_by: michael,
+//  create_by: michael,
 //  avatar: http://api.upyun.com/v1/emrys.jpg
 // }
 //
 // schema: "/topic/:tid/replies" methods: get
 exports.getReplies = function(req, res) {
     var topicId = req.params.tid;
-    db.zrange('topic:' + topicId + ":replies", function(err, replyIds){
+    console.log(topicId);
+    db.zrange('topic:' + topicId + ":replies", 0, -1, function(err, replyIds){
         if (err) {
             return res.json(404, {msg: err});
         }
@@ -157,12 +153,12 @@ exports.getReply = function(req, res) {
 //  id: 1,
 //  content: "It's amazing",
 //  created_at: 13771389100,
-//  created_by: michael,
+//  create_by: michael,
 //  avatar: http://api.upyun.com/v1/emrys.jpg
 // }
 // schema:'/topic/:tid/replies', method: post 
 exports.postReply = function(req, res) {
-    req.checkBody('content', 'Invalid reply content').notEmpty().len(1000);
+    req.checkBody('content', 'Invalid reply content').notEmpty().len(0, 1000);
 
     var errors = req.validationErrors();
     if (errors) {
@@ -175,20 +171,24 @@ exports.postReply = function(req, res) {
             return res.json(400, {msg: err});
         }
 
-        db.zadd('topic:' + req.params.tid + ':replies', now, rid);
-        var reply = {
-            id: rid,
-            content: req.sanitize('content'),
-            created_at: now,
-            create_by: req.user.name,
-            avatar: req.user.avatar
-        };
-
-        db.hmset('reply:' + rid, topic, function(err, res){
+        db.zadd('topic:' + req.params.tid + ':replies', now, rid, function(err, ret){
             if (err) {
                 return res.json(400, {msg: err});
             }
-            return res.json({msg: res});
+            var reply = {
+                id: rid,
+                content: req.param('content'),
+                created_at: now,
+                create_by: req.user.username,
+                avatar: req.user.avatar
+            };
+
+            db.hmset('reply:' + rid, reply, function(err, response){
+                if (err) {
+                    return res.json(400, {msg: err});
+                }
+                return res.json({msg: response});
+            });
         });
     });
 };

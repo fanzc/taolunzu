@@ -38,6 +38,7 @@ passport.deserializeUser(function(username, done) {
 //   however, in this example we are using a baked-in set of users.
 passport.use(new LocalStrategy(
     function(username, password, done) {
+        console.log(username);
         db.hgetall('user:' + username, function(err, user){
             if (err) {
                 return done(err);
@@ -68,6 +69,7 @@ app.set('view engine', 'jade');
 app.use(express.favicon());
 app.use(express.logger('dev'));
 app.use(express.bodyParser());
+app.use(express.methodOverride());
 app.use(expressValidator([]));
 app.use(express.cookieParser('replace this with your secret key'));
 app.use(express.cookieSession());
@@ -78,10 +80,8 @@ app.use(function(req, res, next){
 });
 app.use(passport.initialize());
 app.use(passport.session());
-app.use(express.methodOverride());
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.errorHandler());
 
 // development only
 if ('development' == app.get('env')) {

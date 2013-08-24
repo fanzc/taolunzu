@@ -3,7 +3,7 @@ var crypto = require('crypto');
 var util = require('util');
 var db = require('../db');
 
-var DEFAULT_AVATAR = 'http://en.gravatar.com/favicon.ico';
+var DEFAULT_AVATAR = 'http://tp1.sinaimg.cn/2972287924/180/40002983278/1';
 var SALT_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 function makeSalt (length) {
     var salt = [];

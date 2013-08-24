@@ -4,6 +4,7 @@ angular.module('app', ['http-auth-interceptor'])
 .config(function($routeProvider) {
     $routeProvider
     .when('/', { templateUrl: 'views/index.html', controller: IndexController})
+    .when('/register', { templateUrl: 'views/register.html', controller: RegisterController})
     .when('/login', { templateUrl: 'views/login.html', controller: LoginController})
     .when('/home', { templateUrl: 'views/home.html', controller: HomeController})
     .otherwise({redirectTo: '/'});
@@ -23,11 +24,32 @@ angular.module('app', ['http-auth-interceptor'])
 })
 .service('Authentication', function(){
     this.isloggedIn = false;
+    this.user = {};
 });
 
 function IndexController($scope) {
     // $scope
 }
+
+function RegisterController ($scope, $http, $location) {
+    $scope.message = '';
+    $scope.user = {};
+
+    $scope.register = function(){
+        $http.post('/register', {
+            username: $scope.user.username,
+            password: $scope.user.password,
+            confirm: $scope.user.confirm
+        }).success(function(data){
+            $scope.message = "Register successfullly!";
+            $location.url('/login');
+        }).error(function(err){
+            $scope.message = "Failed";
+        });
+    };
+}
+
+LoginController.$inject = ['$scope', '$http', '$location'];
 
 function LoginController ($scope, $http, $location, Authentication, authService) {
     $scope.message = '';
@@ -35,15 +57,14 @@ function LoginController ($scope, $http, $location, Authentication, authService)
 
     $scope.login = function() {
         $http.post('/login', {
-            email: $scope.user.email,
+            username: $scope.user.username,
             password: $scope.user.password
-        })
-        .success(function(data){
+        }).success(function(data){
             authService.loginConfirmed();
             Authentication.isloggedIn = true;
+            Authentication.user = data;
             $location.url('/home');
-        })
-        .error(function(err){
+        }).error(function(err){
             $scope.message = '';
             $location.url('/login');
         });
@@ -52,30 +73,70 @@ function LoginController ($scope, $http, $location, Authentication, authService)
 
 LoginController.$inject = ['$scope', '$http', '$location', 'Authentication', 'authService'];
 
-function HomeController ($scope, $http, Authentication) {
+function HomeController ($scope, $http, $location, Authentication) {
     $scope.loggedIn = Authentication.isloggedIn;
     $scope.topics = [];
+    $scope.replies = [];
+    $scope.currentTopicIndex = -1;
+    $scope.user = Authentication.user;
 
     $http.get('/topics').success(function(data){
         $scope.topics = data;
+        if ($scope.topics.length > 0) {
+            $scope.currentTopicIndex = 0;
+            $http.get('/topic/' + $scope.topics[$scope.currentTopicIndex].id + '/replies')
+            .success(function(data){
+                $scope.replies = data;
+            }).error(function(err){
+                $scope.flashMessage = err.msg;
+            });
+        }
     });
 
-    if ($scope.topics.length > 0) {
-        $scope.topicId = $scope.topcis[0].id;
-        $http.get('/topic/'+$scope.topicId)
-        .success(function(data){
-            $scope.topicDetail = data;
+    $scope.postNewTopic = function() {
+        $http.post('/topics', {
+            content: $scope.newTopic.content,
+        }).success(function(data){
+            $scope.newTopic.content = '';
+            $scope.flashMessage = data.msg;
+        }).error(function(err){
+            $scope.flashMessage = err.msg;
         });
-    }
+    };
 
     $scope.logout = function() {
         $http.post('/logout').success(function(){
             $scope.flashMessage = "Logout successfully"
             $location.url('/');
         }).error(function(){
-            $scope.flashMessage = "Logout failed"
+            $scope.flashMessage = "Logout failed";
+        });
+    };
+
+    $scope.setDetail = function(topicId) {
+        if (topicId > -1 && topicId < $scope.topics.length ) {
+            $scope.currentTopicIndex = topicId;
+            $http.get('/topic/' + $scope.topics[topicId].id + '/replies')
+            .success(function(data){
+                $scope.replies = data;
+            }).error(function(err){
+                $scope.flashMessage = err.msg;
+            });
+        } else {
+            $scope.flashMessage = "setDetail error.";
+        }
+    };
+
+    $scope.postNewReply = function() {
+        $http.post('/topic/' + $scope.topics[$scope.currentTopicIndex].id + '/replies', {
+            content: $scope.newReply
+        }).success(function(data){
+            $scope.newReply = '';
+            $scope.flashMessage = data.msg;
+        }).error(function(error){
+            $scope.flashMessage = error.msg;
         });
     };
 }
 
-HomeController.$inject = ['$scope', '$http', 'Authentication'];
+HomeController.$inject = ['$scope', '$http', '$location', 'Authentication'];
