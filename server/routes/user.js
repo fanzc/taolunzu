@@ -27,6 +27,18 @@ function makeSalt (length) {
 exports.login = function(req, res) {
     var access_token = uuid.v4();
     if (req.query.cid === config.client_id) {
+        // delete previous access_token:%:username record, update username:%:access_token
+        // record
+        db.get('username:' + req.user.username + ':access_token', function(err, ret){
+            if (err) {
+                console.log(err);
+            } else {
+                db.del('access_token:' + ret + ':username');
+            }
+        });
+        db.set('username:' + req.user.username + ':access_token', access_token);
+
+        // update access_token:%:username record
         db.set('access_token:' + access_token + ':username', req.user.username, function(err, ret){
             if (err) {
                 return res.json(401, {msg: "Authorization error"});
@@ -36,7 +48,7 @@ exports.login = function(req, res) {
                 avatar: req.user.avatar,
                 access_token: access_token
             });
-        })
+        });
     } else {
         return res.json({
             username: req.user.username,
@@ -47,18 +59,10 @@ exports.login = function(req, res) {
 
 exports.logout = function(req, res) {
     req.logout();
-    if (req.query.access_token && req.query.cid === config.client_id) {
-        db.del('access_token:' + req.query.access_token + 'username', function(err, ret){
-            if (err) {
-                return res.json(403, {msg: err});
-            }
-            return res.json({msg: "Logged out"});
-        });
-    } else {
-        return res.json({
-            msg: "Logged out"
-        });
+    if (req.query.access_token || req.query.cid === config.client_id) {
+        db.del('access_token:' + req.query.access_token + 'username');
     }
+    return res.json({msg: "Logged out"});
 };
 
 exports.register = function(req, res) {
