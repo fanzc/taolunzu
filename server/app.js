@@ -37,7 +37,6 @@ passport.deserializeUser(function(username, done) {
 //   however, in this example we are using a baked-in set of users.
 passport.use(new LocalStrategy(
     function(username, password, done) {
-        console.log(username);
         db.hgetall('user:' + username, function(err, user){
             if (err) {
                 return done(err);

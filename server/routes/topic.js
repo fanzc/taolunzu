@@ -1,6 +1,9 @@
 var util = require('util');
 var db = require('../db');
 
+// Rex to extract at list
+var atPattern = /@(\S+)/g;
+
 // sorted set "user:%name:topics" with topic id, sort by latest_update_stamp
 // hash table "topics:%tid"
 // {
@@ -77,6 +80,19 @@ exports.postTopic = function(req, res){
         }
 
         db.zadd('user:' + req.user.username + ':topics', now, tid);
+
+        var atList = req.param('content').match(atPattern);
+        if (atList) {
+            atList.forEach(function(at){
+                var commenter = at.slice(1);
+                db.exists('user:' + commenter, function(err, exists){
+                    if (exists && commenter != req.user.username) {
+                        db.zadd('user:' + commenter + ':topics', now, tid);
+                    }
+                });
+            });
+        }
+
         var topic = {
             id: tid,
             content: req.param('content'),
@@ -109,7 +125,6 @@ exports.postTopic = function(req, res){
 // schema: "/topic/:tid/replies" methods: get
 exports.getReplies = function(req, res) {
     var topicId = req.params.tid;
-    console.log(topicId);
     db.zrange('topic:' + topicId + ":replies", 0, -1, function(err, replyIds){
         if (err) {
             return res.json(404, {msg: err});
@@ -169,6 +184,18 @@ exports.postReply = function(req, res) {
     db.incrby('global:nextReplyId', 1, function(err, rid){
         if (err) {
             return res.json(400, {msg: err});
+        }
+
+        var atList = req.param('content').match(atPattern);
+        if (atList) {
+            atList.forEach(function(at){
+                var commenter = at.slice(1);
+                db.exists('user:' + commenter, function(err, exists){
+                    if (exists && commenter != req.user.username) {
+                        db.zadd('user:' + commenter + ':topics', now, req.params.tid);
+                    }
+                });
+            });
         }
 
         db.zadd('topic:' + req.params.tid + ':replies', now, rid, function(err, ret){
