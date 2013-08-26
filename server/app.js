@@ -1,4 +1,3 @@
-
 /**
  * Module dependencies.
  */
@@ -73,11 +72,11 @@ app.use(express.methodOverride());
 app.use(expressValidator([]));
 app.use(express.cookieParser('replace this with your secret key'));
 app.use(express.cookieSession());
-app.use(express.csrf());
-app.use(function(req, res, next){
-    res.cookie('XSRF-TOKEN', req.session._csrf);
-    next();
-});
+// app.use(express.csrf());
+// app.use(function(req, res, next){
+//     res.cookie('XSRF-TOKEN', req.session._csrf);
+//     next();
+// });
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(app.router);
