@@ -9,8 +9,10 @@ var LocalStrategy = require('passport-local').Strategy;
 var user = require('./routes/user');
 var topic = require('./routes/topic');
 var db = require('./db');
+var config = require('./config');
 var http = require('http');
 var path = require('path');
+var csrf = express.csrf();
 
 var app = express();
 
@@ -53,11 +55,34 @@ passport.use(new LocalStrategy(
     }
 ));
 
+function conditionCSRF(req, res, next) {
+    if (req.query.access_token || req.query.cid === config.client_id) {
+        next();
+    } else {
+        csrf(req, res, next);
+    }
+}
+
 function ensureAuthenticated(req, res, next) {
     if (req.isAuthenticated()) {
         return next();
     }
-    return res.json(401, {msg: "Login required"});
+    if (req.query.access_token) {
+        db.get('access_token:' + req.query.access_token + ':username', function(err, username){
+            if (err || !username ) {
+                return res.json(401, {msg: "Login required 1"});
+            }
+            db.hgetall('user:' + username, function(err, user){
+                if (err) {
+                    return res.json(401, {msg: "Login required 2"});
+                }
+                req.user = user;
+                next();
+            });
+        });
+    } else {
+        return res.json(401, {msg: "Login required 3"});
+    }
 }
 
 // all environments
@@ -71,11 +96,11 @@ app.use(express.methodOverride());
 app.use(expressValidator([]));
 app.use(express.cookieParser('replace this with your secret key'));
 app.use(express.cookieSession());
-// app.use(express.csrf());
-// app.use(function(req, res, next){
-//     res.cookie('XSRF-TOKEN', req.session._csrf);
-//     next();
-// });
+app.use(conditionCSRF);
+app.use(function(req, res, next){
+    res.cookie('XSRF-TOKEN', req.session._csrf);
+    next();
+});
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(app.router);

@@ -2,6 +2,8 @@ var passport = require('passport');
 var crypto = require('crypto');
 var util = require('util');
 var db = require('../db');
+var uuid = require('node-uuid');
+var config = require('../config');
 
 var DEFAULT_AVATAR = 'http://tp1.sinaimg.cn/2972287924/180/40002983278/1';
 var SALT_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -23,17 +25,40 @@ function makeSalt (length) {
 //
 //   curl -v -d "username=bob&password=secret" http://127.0.0.1:3000/login
 exports.login = function(req, res) {
-    return res.json({
-        username: req.user.username,
-        avatar: req.user.avatar
-    });
+    var access_token = uuid.v4();
+    if (req.query.cid === config.client_id) {
+        db.set('access_token:' + access_token + ':username', req.user.username, function(err, ret){
+            if (err) {
+                return res.json(401, {msg: "Authorization error"});
+            }
+            return res.json({
+                username: req.user.username,
+                avatar: req.user.avatar,
+                access_token: access_token
+            });
+        })
+    } else {
+        return res.json({
+            username: req.user.username,
+            avatar: req.user.avatar
+        });
+    }
 };
 
 exports.logout = function(req, res) {
     req.logout();
-    return res.json({
-        msg: "Logged out!"
-    });
+    if (req.query.access_token && req.query.cid === config.client_id) {
+        db.del('access_token:' + req.query.access_token + 'username', function(err, ret){
+            if (err) {
+                return res.json(403, {msg: err});
+            }
+            return res.json({msg: "Logged out"});
+        });
+    } else {
+        return res.json({
+            msg: "Logged out"
+        });
+    }
 };
 
 exports.register = function(req, res) {
