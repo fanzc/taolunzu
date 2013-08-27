@@ -45,11 +45,17 @@ exports.getTopics = function(req, res) {
 
 // schema: "/topic/:tid", method: get
 exports.getTopic = function(req, res){
-    db.hgetall('topic:' + req.params.tid, function(err, topic){
-        if (err) {
+    // make sure it's accessable
+    db.zscore('user:' + req.user.username + 'topics', tid, function(err, score){
+        if (err || !score) {
             return res.json(404, {msg: err});
         }
-        return res.json(topic);
+        db.hgetall('topic:' + req.params.tid, function(err, topic){
+            if (err) {
+                return res.json(404, {msg: err});
+            }
+            return res.json(topic);
+        });
     });
 };
 
@@ -125,40 +131,55 @@ exports.postTopic = function(req, res){
 // schema: "/topic/:tid/replies" methods: get
 exports.getReplies = function(req, res) {
     var topicId = req.params.tid;
-    db.zrange('topic:' + topicId + ":replies", 0, -1, function(err, replyIds){
-        if (err) {
+    db.zscore('user:' + req.user.username + ':topics', topicId, function(err, score){
+        if (err || !score) {
             return res.json(404, {msg: err});
         }
+        db.zrange('topic:' + topicId + ":replies", 0, -1, function(err, replyIds){
+            if (err) {
+                return res.json(404, {msg: err});
+            }
 
-        var replies = [];
-        var completed_count = 0;
-        if (replyIds.length === 0) {
-            return res.json(replies);
-        }
-        replyIds.forEach(function(rid, index){
-            db.hgetall('reply:' + rid, function(err, reply){
-                if (err) {
-                    console.log(err);
-                } else {
-                    replies.push(reply);
-                }
-                completed_count++;
-                if (completed_count === replyIds.length) {
-                    return res.json(replies);
-                }
+            var replies = [];
+            var completed_count = 0;
+            if (replyIds.length === 0) {
+                return res.json(replies);
+            }
+            replyIds.forEach(function(rid, index){
+                db.hgetall('reply:' + rid, function(err, reply){
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        replies.push(reply);
+                    }
+                    completed_count++;
+                    if (completed_count === replyIds.length) {
+                        return res.json(replies);
+                    }
+                });
             });
         });
-    });
+    })
 };
 
 // schema: '/topic/:tid/reply/:rid' method: get
 exports.getReply = function(req, res) {
     var replyId = req.params.rid;
-    db.hgetall('reply:' + replyId, function(err, reply){
-        if (err) {
-            return res.json(400, {msg: err});
-        } 
-        return res.json(reply);
+    db.zscore('user:' + req.user.username + ':topics', req.params.tid, function(err, score){
+        if (err || !score) {
+            return res.json(404, {msg: err});
+        }
+        db.zscore('topic:' + req.params.tid + ':replies', replyId, function(err, score){
+            if (err || !score) {
+                return res.json(404, {msg: err});
+            }
+            db.hgetall('reply:' + replyId, function(err, reply){
+                if (err) {
+                    return res.json(400, {msg: err});
+                } 
+                return res.json(reply);
+            });
+        });
     });
 };
 
@@ -180,41 +201,47 @@ exports.postReply = function(req, res) {
         return res.json(400, util.inspect(errors));
     }
 
-    var now = (new Date()).getTime();
-    db.incrby('global:nextReplyId', 1, function(err, rid){
-        if (err) {
-            return res.json(400, {msg: err});
+    db.zscore('user:' + req.user.username + ':topics', req.params.tid, function(err, score){
+        if (err || !score) {
+            return res.json(404, {msg: err});
         }
 
-        var atList = req.param('content').match(atPattern);
-        if (atList) {
-            atList.forEach(function(at){
-                var commenter = at.slice(1);
-                db.exists('user:' + commenter, function(err, exists){
-                    if (exists && commenter != req.user.username) {
-                        db.zadd('user:' + commenter + ':topics', now, req.params.tid);
-                    }
-                });
-            });
-        }
-
-        db.zadd('topic:' + req.params.tid + ':replies', now, rid, function(err, ret){
+        var now = (new Date()).getTime();
+        db.incrby('global:nextReplyId', 1, function(err, rid){
             if (err) {
                 return res.json(400, {msg: err});
             }
-            var reply = {
-                id: rid,
-                content: req.param('content'),
-                created_at: now,
-                create_by: req.user.username,
-                avatar: req.user.avatar
-            };
 
-            db.hmset('reply:' + rid, reply, function(err, response){
+            var atList = req.param('content').match(atPattern);
+            if (atList) {
+                atList.forEach(function(at){
+                    var commenter = at.slice(1);
+                    db.exists('user:' + commenter, function(err, exists){
+                        if (exists && commenter != req.user.username) {
+                            db.zadd('user:' + commenter + ':topics', now, req.params.tid);
+                        }
+                    });
+                });
+            }
+
+            db.zadd('topic:' + req.params.tid + ':replies', now, rid, function(err, ret){
                 if (err) {
                     return res.json(400, {msg: err});
                 }
-                return res.json({msg: response});
+                var reply = {
+                    id: rid,
+                    content: req.param('content'),
+                    created_at: now,
+                    create_by: req.user.username,
+                    avatar: req.user.avatar
+                };
+
+                db.hmset('reply:' + rid, reply, function(err, response){
+                    if (err) {
+                        return res.json(400, {msg: err});
+                    }
+                    return res.json({msg: response});
+                });
             });
         });
     });
