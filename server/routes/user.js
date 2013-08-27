@@ -5,7 +5,7 @@ var db = require('../db');
 var uuid = require('node-uuid');
 var config = require('../config');
 
-var DEFAULT_AVATAR = 'http://tp1.sinaimg.cn/2972287924/180/40002983278/1';
+var DEFAULT_AVATAR = '/images/avatar.jpg';
 var SALT_CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 function makeSalt (length) {
     var salt = [];
