@@ -114,6 +114,7 @@ if ('development' == app.get('env')) {
 app.post('/login', passport.authenticate('local'), user.login);
 app.post('/logout', user.logout);
 app.post('/register', user.register);
+app.get('/user', ensureAuthenticated, user.me);
 
 app.get('/topics', ensureAuthenticated, topic.getTopics);
 app.get('/topic/:tid', ensureAuthenticated, topic.getTopic);

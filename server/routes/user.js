@@ -103,3 +103,10 @@ exports.register = function(req, res) {
         });
     });
 };
+
+exports.me = function(req, res){
+    return res.json({
+        username: req.user.username,
+        avatar: req.user.avatar
+    });
+}
