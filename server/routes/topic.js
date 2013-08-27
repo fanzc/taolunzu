@@ -4,42 +4,68 @@ var db = require('../db');
 // Rex to extract at list
 var atPattern = /@(\S+)/g;
 
-// sorted set "user:%name:topics" with topic id, sort by latest_update_stamp
-// hash table "topics:%tid"
-// {
-//  id: 1,
-//  content: "Hey, slow it down whataya want from me, whataya want from me, there are might be a time",
-//  create_by: emrys,
-//  created_at: 1377138907,
-//  reply_count: 0,
-//  latest_update_stamp: 1377138907
-// }
-//
-//  schema: "/topics", method: get
+/**
+ * Return a topic list ordered by create time.
+ *
+ * schema: "/topics", method: get
+ *
+ * sorted set "user:%name:topics" with topic id, sort by latest_update_stamp
+ * hash table "topics:%tid"
+ * [
+ *      {
+ *       id: 1,
+ *       content: "Hey, slow it down whataya want from me, whataya want from me",
+ *       create_by: emrys,
+ *       created_at: 1377138907,
+ *       reply_count: 0,
+ *       latest_update_stamp: 1377138907
+ *      },
+ *      ...
+ *      {
+ *
+ *      }
+ * ]
+ *
+ * @param {int} since_id
+ * @param {int} count
+ * @api public
+ */
 exports.getTopics = function(req, res) {
-    db.zrange('user:' + req.user.username + ':topics', 0, -1, function(err, topicIds){
+    var since_id = parseInt(req.query.since_id) || 0;
+    // topic id should be positive integer(>0)
+    db.zrank('user:' + req.user.username + ':topics', since_id, function(err, rank){
         if (err) {
             return res.json(404, {msg: err});
         }
+        
+        rank = rank || 0;
+        var count = parseInt(req.query.count) || 20;
+        db.zrange('user:' + req.user.username + ':topics', rank, rank+count, function(err, topicIds){
+            if (err) {
+                return res.json(404, {msg: err});
+            }
 
-        var topics = [];
-        var completed_count = 0;
-        if (topicIds.length === 0) {
-            return res.json(topics);
-        }
-        topicIds.forEach(function(tid, index){
-            db.hgetall('topic:' + tid, function(err, topic) {
-                if (err) {
-                    console.log(err);
-                } else {
-                    topics.push(topic);
-                }
-                completed_count++;
-                if (completed_count === topicIds.length) {
-                    return res.json(topics);
-                }
+            var topics = [];
+            var completed_count = 0;
+            if (topicIds.length === 0) {
+                return res.json(topics);
+            }
+
+            topicIds.forEach(function(tid, index){
+                db.hgetall('topic:' + tid, function(err, topic) {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        topics.push(topic);
+                    }
+                    completed_count++;
+                    if (completed_count === topicIds.length) {
+                        return res.json(topics);
+                    }
+                });
             });
         });
+
     });
 };
 
@@ -117,45 +143,63 @@ exports.postTopic = function(req, res){
 };
 
 
-
-// sorted set "topic:%tid:replies" with reply id, sorted by created_at, 
-// hash table "reply:%rid"
-// {
-//  id: 1,
-//  content: "It's amazing",
-//  created_at: 13771389100,
-//  create_by: michael,
-//  avatar: http://api.upyun.com/v1/emrys.jpg
-// }
-//
-// schema: "/topic/:tid/replies" methods: get
+/**
+ * Return a repliy list sorted by create time. 
+ *
+ * schema: "/topic/:tid/replies" methods: get
+ *
+ * [
+ *      {
+ *       id: 1,
+ *       content: "It's amazing",
+ *       created_at: 13771389100,
+ *       create_by: michael,
+ *       avatar: http://api.upyun.com/v1/emrys.jpg
+ *      },
+ *      {
+ *      ...
+ *      }
+ * ]
+ *
+ * @param {int} since_id
+ * @param {int} count
+ * @api public
+ */
 exports.getReplies = function(req, res) {
+    var since_id = parseInt(req.query.since_id) || 0;
     var topicId = req.params.tid;
     db.zscore('user:' + req.user.username + ':topics', topicId, function(err, score){
         if (err || !score) {
             return res.json(404, {msg: err});
         }
-        db.zrange('topic:' + topicId + ":replies", 0, -1, function(err, replyIds){
+        db.zrank('user:' + req.user.username + ':topics', since_id, function(err, rank){
             if (err) {
                 return res.json(404, {msg: err});
             }
+            rank = rank || 0;
+            var count = parseInt(req.query.count) || 20;
+            db.zrange('topic:' + topicId + ":replies", rank, rank+count, function(err, replyIds){
+                if (err) {
+                    return res.json(404, {msg: err});
+                }
 
-            var replies = [];
-            var completed_count = 0;
-            if (replyIds.length === 0) {
-                return res.json(replies);
-            }
-            replyIds.forEach(function(rid, index){
-                db.hgetall('reply:' + rid, function(err, reply){
-                    if (err) {
-                        console.log(err);
-                    } else {
-                        replies.push(reply);
-                    }
-                    completed_count++;
-                    if (completed_count === replyIds.length) {
-                        return res.json(replies);
-                    }
+                var replies = [];
+                var completed_count = 0;
+                if (replyIds.length === 0) {
+                    return res.json(replies);
+                }
+                replyIds.forEach(function(rid, index){
+                    db.hgetall('reply:' + rid, function(err, reply){
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            replies.push(reply);
+                        }
+                        completed_count++;
+                        if (completed_count === replyIds.length) {
+                            return res.json(replies);
+                        }
+                    });
                 });
             });
         });
