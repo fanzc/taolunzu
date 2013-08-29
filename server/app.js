@@ -56,7 +56,7 @@ passport.use(new LocalStrategy(
 ));
 
 function conditionCSRF(req, res, next) {
-    if (req.query.access_token || req.query.cid === config.client_id) {
+    if (req.get('X-Client-Id') === config.client_id) {
         next();
     } else {
         csrf(req, res, next);
@@ -67,8 +67,8 @@ function ensureAuthenticated(req, res, next) {
     if (req.isAuthenticated()) {
         return next();
     }
-    if (req.query.access_token) {
-        db.get('access_token:' + req.query.access_token + ':username', function(err, username){
+    if (req.get('X-Access-Token')) {
+        db.get('access_token:' + req.get('X-Access-Token') + ':username', function(err, username){
             if (err || !username ) {
                 return res.json(401, {msg: "Login required 1"});
             }

@@ -26,7 +26,7 @@ function makeSalt (length) {
 //   curl -v -d "username=bob&password=secret" http://127.0.0.1:3000/login
 exports.login = function(req, res) {
     var access_token = uuid.v4();
-    if (req.query.cid === config.client_id) {
+    if (req.get('X-Client-Id') === config.client_id) {
         // delete previous access_token:%:username record, update username:%:access_token
         // record
         db.get('username:' + req.user.username + ':access_token', function(err, ret){
@@ -59,8 +59,8 @@ exports.login = function(req, res) {
 
 exports.logout = function(req, res) {
     req.logout();
-    if (req.query.access_token || req.query.cid === config.client_id) {
-        db.del('access_token:' + req.query.access_token + 'username');
+    if (req.get('X-Access-Token') && req.get('X-Client-Id') === config.client_id) {
+        db.del('access_token:' + req.get('X-Access-Token') + 'username');
     }
     return res.json({msg: "Logged out"});
 };
