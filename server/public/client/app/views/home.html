@@ -61,6 +61,9 @@
                     <img class="media-object" data-ng-src="{{ reply.avatar }}" alt="avatar">
                 </a>
                 <div class="media-body">
+                    <div class="media-heading">
+                        {{ reply.create_by }}
+                    </div>
                     {{ reply.content }}
                 </div>
             </div>
