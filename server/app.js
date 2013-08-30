@@ -124,6 +124,8 @@ app.get('/topic/:tid/replies', ensureAuthenticated, topic.getReplies);
 app.get('/topic/:tid/reply/:rid', ensureAuthenticated, topic.getReply);
 app.post('/topic/:tid/replies', ensureAuthenticated, topic.postReply);
 
+app.get('/messages', ensureAuthenticated, topic.getMessages);
+
 http.createServer(app).listen(app.get('port'), function(){
   console.log('Express server listening on port ' + app.get('port'));
 });

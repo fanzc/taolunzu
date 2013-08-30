@@ -10,10 +10,11 @@ var atPattern = /@(\S+)/g;
  * schema: "/topics", method: get
  *
  * sorted set "user:%name:topics" with topic id, sort by latest_update_stamp
- * hash table "topics:%tid"
+ * hash table "message:%tid"
  * [
  *      {
  *       id: 1,
+ *       topic_id: 1,
  *       content: "Hey, slow it down whataya want from me, whataya want from me",
  *       create_by: emrys,
  *       created_at: 1377138907,
@@ -39,8 +40,8 @@ exports.getTopics = function(req, res) {
         }
         
         rank = rank || 0;
-        var count = parseInt(req.query.count) || 20;
-        db.zrange('user:' + req.user.username + ':topics', rank, rank+count, function(err, topicIds){
+        var count = parseInt(req.query.count) || 19;
+        db.zrevrange('user:' + req.user.username + ':topics', rank, rank+count, function(err, topicIds){
             if (err) {
                 return res.json(404, {msg: err});
             }
@@ -52,7 +53,7 @@ exports.getTopics = function(req, res) {
             }
 
             topicIds.forEach(function(tid, index){
-                db.hgetall('topic:' + tid, function(err, topic) {
+                db.hgetall('message:' + tid, function(err, topic) {
                     if (err) {
                         console.log(err);
                     } else {
@@ -76,7 +77,7 @@ exports.getTopic = function(req, res){
         if (err || !score) {
             return res.json(404, {msg: err});
         }
-        db.hgetall('topic:' + req.params.tid, function(err, topic){
+        db.hgetall('message:' + req.params.tid, function(err, topic){
             if (err) {
                 return res.json(404, {msg: err});
             }
@@ -106,12 +107,18 @@ exports.postTopic = function(req, res){
     }
     
     var now = (new Date()).getTime();
-    db.incrby('global:nextTopicId', 1, function(err, tid){
+    db.incrby('global:nextMessageId', 1, function(err, messageId){
         if (err) {
             return res.json(400, {msg: err});
         }
 
-        db.zadd('user:' + req.user.username + ':topics', now, tid);
+        db.zadd('user:' + req.user.username + ':replies', now, messageId);
+        db.zadd('topic:' + messageId + ':messages', now, messageId);
+
+        db.zadd('user:' + req.user.username + ':topics', now, messageId);
+        db.zadd('topic:' + messageId + ':users', now, req.user.username);
+        db.zadd('user:' + req.user.username + ':messages', now, messageId);
+
 
         var atList = req.param('content').match(atPattern);
         if (atList) {
@@ -119,21 +126,24 @@ exports.postTopic = function(req, res){
                 var commenter = at.slice(1);
                 db.exists('user:' + commenter, function(err, exists){
                     if (exists && commenter != req.user.username) {
-                        db.zadd('user:' + commenter + ':topics', now, tid);
+                        db.zadd('user:' + commenter + ':topics', now, messageId);
+                        db.zadd('topic:' + messageId + ':users', now, commenter);
+                        db.zadd('user:' + commenter + ':messages', now, messageId);
                     }
                 });
             });
         }
 
-        var topic = {
-            id: tid,
+        var message = {
+            id: messageId,
+            topic_id: messageId,
             content: req.param('content'),
             created_at: now,
             create_by: req.user.username,
             avatar: req.user.avatar
         };
 
-        db.hmset('topic:' + tid, topic, function(err, ret){
+        db.hmset('message:' + messageId, message, function(err, ret){
             if (err) {
                 return res.json(400, {msg: err});
             }
@@ -150,7 +160,8 @@ exports.postTopic = function(req, res){
  *
  * [
  *      {
- *       id: 1,
+ *       id: 2,
+ *       topic_id: 1
  *       content: "It's amazing",
  *       created_at: 13771389100,
  *       create_by: michael,
@@ -177,26 +188,26 @@ exports.getReplies = function(req, res) {
                 return res.json(404, {msg: err});
             }
             rank = rank || 0;
-            var count = parseInt(req.query.count) || 20;
-            db.zrange('topic:' + topicId + ":replies", rank, rank+count, function(err, replyIds){
+            var count = parseInt(req.query.count) || 19;
+            db.zrevrange('topic:' + topicId + ":messages", rank, rank+count, function(err, messageIds){
                 if (err) {
                     return res.json(404, {msg: err});
                 }
 
                 var replies = [];
                 var completed_count = 0;
-                if (replyIds.length === 0) {
+                if (messageIds.length === 0) {
                     return res.json(replies);
                 }
-                replyIds.forEach(function(rid, index){
-                    db.hgetall('reply:' + rid, function(err, reply){
+                messageIds.forEach(function(messageId, index){
+                    db.hgetall('message:' + messageId, function(err, reply){
                         if (err) {
                             console.log(err);
                         } else {
                             replies.push(reply);
                         }
                         completed_count++;
-                        if (completed_count === replyIds.length) {
+                        if (completed_count === messageIds.length) {
                             return res.json(replies);
                         }
                     });
@@ -217,7 +228,7 @@ exports.getReply = function(req, res) {
             if (err || !score) {
                 return res.json(404, {msg: err});
             }
-            db.hgetall('reply:' + replyId, function(err, reply){
+            db.hgetall('message:' + replyId, function(err, reply){
                 if (err) {
                     return res.json(400, {msg: err});
                 } 
@@ -251,36 +262,60 @@ exports.postReply = function(req, res) {
         }
 
         var now = (new Date()).getTime();
-        db.incrby('global:nextReplyId', 1, function(err, rid){
+        db.incrby('global:nextMessageId', 1, function(err, messageId){
             if (err) {
                 return res.json(400, {msg: err});
             }
+            
+            // add a record to message list of who is accessable to current topic.
+            db.zrange('topic:' + req.params.tid + ':users', 0, -1, function(err, users){
+                if (!err && users && users.length > 0) {
+                    users.forEach(function(user){
+                        db.zadd('user:' + user + ':messages', now, messageId);
+                    });
+                }
+            });
 
+            // Extract ats from content string, add a record to ats's
+            // topic zset
             var atList = req.param('content').match(atPattern);
             if (atList) {
                 atList.forEach(function(at){
                     var commenter = at.slice(1);
                     db.exists('user:' + commenter, function(err, exists){
                         if (exists && commenter != req.user.username) {
-                            db.zadd('user:' + commenter + ':topics', now, req.params.tid);
+                            // add a topic record to new commenter's topic list,
+                            // add a message record to new commenter's message list,
+                            // add an user record to current topic's user list.
+                            db.zscore('user:' + commenter + ':topics', req.params.tid, function(err, score){
+                                if (!err && !score) {
+                                    db.zadd('user:' + commenter + ':topics', now, req.params.tid);
+                                    db.zadd('user:' + commenter + ':messages', now, messageId);
+                                    db.zadd('topic:' + req.params.tid + ':users', now, commenter);
+                                }
+                            });
                         }
                     });
                 });
             }
 
-            db.zadd('topic:' + req.params.tid + ':replies', now, rid, function(err, ret){
+            db.zadd('user:' + req.user.username + ':replies', now, messageId);
+
+            // add a message record to topic zset
+            db.zadd('topic:' + req.params.tid + ':messages', now, messageId, function(err, ret){
                 if (err) {
                     return res.json(400, {msg: err});
                 }
-                var reply = {
-                    id: rid,
+                var message = {
+                    id: messageId,
+                    topic_id: req.params.tid,
                     content: req.param('content'),
                     created_at: now,
                     create_by: req.user.username,
                     avatar: req.user.avatar
                 };
 
-                db.hmset('reply:' + rid, reply, function(err, response){
+                db.hmset('message:' + messageId, message, function(err, response){
                     if (err) {
                         return res.json(400, {msg: err});
                     }
@@ -290,3 +325,40 @@ exports.postReply = function(req, res) {
         });
     });
 };
+
+exports.getMessages = function(req, res){
+    var since_id = parseInt(req.query.since_id) || 0;
+    db.zrank('user:' + req.user.username + ':messages', since_id, function(err, rank){
+        if (err) {
+            return res.json(404, {msg: err});
+        }
+        
+        rank = rank || 0;
+        var count = parseInt(req.query.count) || 19;
+        db.zrevrange('user:' + req.user.username + ':messages', rank, rank+count, function(err, messageIds){
+            if (err) {
+                res.json(404, {msg: err});
+            }
+
+            var messages = [];
+            var completed_count = 0;
+            if (messageIds.length === 0) {
+                return res.json(messages);
+            }
+
+            messageIds.forEach(function(messageId, index){
+                db.hgetall('message:' + messageId, function(err, message) {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        messages.push(message);
+                    }
+                    completed_count++;
+                    if (completed_count === messageIds.length) {
+                        return res.json(messages);
+                    }
+                });
+            });
+        });
+    });
+}
