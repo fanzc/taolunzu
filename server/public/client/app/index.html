@@ -29,17 +29,5 @@
     <script src="bower_components/angular-sanitize/angular-sanitize.js"></script>
     <script src="bower_components/angular-http-auth/src/http-auth-interceptor.js"></script>
     <!-- endbuild -->
-    <script type="text/javascript">
-        $(document).ready(function(){
-            $('ul.topics>li').hover(function(){
-                $(this).find('ul.actions').toggleClass('hidden');
-            });
-
-            $('ul.topics>li').click(function(){
-                $('ul.topics>li').removeClass('selected');
-                $(this).toggleClass('selected');
-            });
-        });
-</script>
 </body>
 </html>
