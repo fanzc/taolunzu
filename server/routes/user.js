@@ -66,7 +66,7 @@ exports.logout = function(req, res) {
 };
 
 exports.register = function(req, res) {
-    req.checkBody('username', 'Invalid username').notEmpty().len(6, 16);
+    req.checkBody('username').notEmpty().len(2, 16);
     req.checkBody('password', 'Invalid password').notEmpty().len(8, 20);
     req.checkBody('confirm', 'Password confirm error').notEmpty()
         .equals(req.param('confirm'))

@@ -34,7 +34,7 @@ var atPattern = /@(\S+)/g;
 exports.getTopics = function(req, res) {
     var since_id = parseInt(req.query.since_id) || 0;
     // topic id should be positive integer(>0)
-    db.zrank('user:' + req.user.username + ':topics', since_id, function(err, rank){
+    db.zrevrank('user:' + req.user.username + ':topics', since_id, function(err, rank){
         if (err) {
             return res.json(404, {msg: err});
         }
@@ -147,7 +147,7 @@ exports.postTopic = function(req, res){
             if (err) {
                 return res.json(400, {msg: err});
             }
-            return res.json({msg: ret});
+            return res.json({msg: ret, topic_id: messageId});
         });
     });
 };
@@ -189,7 +189,7 @@ exports.getReplies = function(req, res) {
             }
             rank = rank || 0;
             var count = parseInt(req.query.count) || 19;
-            db.zrevrange('topic:' + topicId + ":messages", rank, rank+count, function(err, messageIds){
+            db.zrange('topic:' + topicId + ":messages", rank, rank+count, function(err, messageIds){
                 if (err) {
                     return res.json(404, {msg: err});
                 }
@@ -249,7 +249,7 @@ exports.getReply = function(req, res) {
 // }
 // schema:'/topic/:tid/replies', method: post 
 exports.postReply = function(req, res) {
-    req.checkBody('content', 'Invalid reply content').notEmpty().len(0, 1000);
+    req.checkBody('content', 'Invalid reply content').notEmpty().len(1, 1000);
 
     var errors = req.validationErrors();
     if (errors) {
@@ -300,6 +300,8 @@ exports.postReply = function(req, res) {
             }
 
             db.zadd('user:' + req.user.username + ':replies', now, messageId);
+            db.hincrby('message:' + req.params.tid, 'reply_count', 1);
+            db.hset('message:' + req.params.tid, 'updated_at', now);
 
             // add a message record to topic zset
             db.zadd('topic:' + req.params.tid + ':messages', now, messageId, function(err, ret){
@@ -319,7 +321,7 @@ exports.postReply = function(req, res) {
                     if (err) {
                         return res.json(400, {msg: err});
                     }
-                    return res.json({msg: response});
+                    return res.json({msg: response, message_id: messageId});
                 });
             });
         });
